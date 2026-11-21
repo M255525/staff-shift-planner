@@ -4,7 +4,7 @@
 
 - 純靜態：`index.html`（CSS）＋`data.js`（引擎 `window.SSP`，node 可 require）＋`app.js`（畫面）＋`watermark.js`（`TOOL_WATERMARK`）＋`manual.html`＋PWA。
 - 本機預覽 port **8906**（`.claude/launch.json` 的 `staff-shift-planner`；程式牆 `LOCAL_APPS` static、host localhost）。visitor-badge `m255525.staffshiftplanner`（手冊 `.manual`）。
-- **尚未上線**（使用者偏好：實驗性新工具上線前先問）。上線後改程式牆 `REPO_META`、github-dashboard、AI 工具導航（建議放「開一家店」情境，在雇主人事成本試算旁）；改版要升 `service-worker.js` 的 `CACHE_NAME`。
+- **2026-11-21 已上線** <https://m255525.github.io/staff-shift-planner/>（`publish.mjs`：建 repo＋push → 開 Pages → 補 master 部署規則 → workflow_dispatch）。程式牆 `REPO_META`、github-dashboard、AI 工具導航已登記。改版後升 `service-worker.js` 的 `CACHE_NAME` 再 push。
 
 ## 規則（改了 `data.js` 跑 `node tools/test_engine.mjs`，4589 項含 1500 組亂數）
 - 依勞動基準法**一般工時**（2026-11 查證），常數在 `P`：每日 12（第 32 條）、正常 8（第 30 條）、每月加班 46（第 32 條）、換班間隔 11 小時（第 34 條）、連續 4 小時要休 30 分（第 35 條，剛好 4 小時不用）、童工每日 8／每週 40／不得 20:00–06:00（第 47、48 條）、基本工資月薪 29,500／時薪 196（**與 employer-payroll-cost-calculator 一致，改其中一個要兩邊一起改**）。
