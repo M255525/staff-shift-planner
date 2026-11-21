@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>員工排班表</title>
+<meta name="description" content="小店排一週班表：設定班別、人員與每班需要幾個人，自動排班並檢查勞基法工時規定（每日 12 小時、11 小時輪班間隔、例假、連續上班），算出人力成本與加班費，可列印貼牆或傳 LINE。">
+<meta name="theme-color" content="#33363B">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* 範本產生的起始配色（slate）。畫風要依工具主題重新設計，不要直接沿用。 */
+:root{
+  --bg:#F1F1EF; --paper:#FFFFFF; --ink:#222222; --sub:#666660; --line:#DADAD4;
+  --main:#33363B; --on-main:#F4F4F2; --accent:#D0452F;
+  --ok:#3B7A47; --warn:#C08514; --bad:#B4322A;
+  --mono:'JetBrains Mono','Consolas',monospace;
+  --serif:'Noto Serif TC','PMingLiU',serif;
+  --mq:0px; color-scheme:light;
+}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+html[data-fsize="xl"]{font-size:19px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Noto Sans TC','Microsoft JhengHei','PingFang TC',sans-serif;font-weight:500;line-height:1.6;padding-top:var(--mq)}
+body.has-marquee{--mq:34px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--accent);font-weight:700}
+:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+h1,h2,h3{margin:0;line-height:1.3}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+/* 不可拿掉：所有 hidden 切換都靠這行 */
+[hidden]{display:none!important}
+
+/* 跑馬燈（必備、不可關、滑鼠移入暫停） */
+#marqueeBar{position:fixed;top:0;left:0;right:0;height:34px;background:var(--main);z-index:60;overflow:hidden;display:none;align-items:center}
+#marqueeBar.show{display:flex}
+#marqueeTrack{display:inline-block;white-space:nowrap;padding-left:100%;font-size:15px;font-weight:700;color:var(--on-main);animation:marquee-scroll 30s linear infinite}
+#marqueeBar:hover #marqueeTrack{animation-play-state:paused}
+@keyframes marquee-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+#app{max-width:72rem;margin:0 auto;padding:.9rem 1rem calc(2rem + env(safe-area-inset-bottom))}
+.bar{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.bar h1{flex:1 1 15rem;font-family:var(--serif);font-size:1.7rem;letter-spacing:.05em;color:var(--main)}
+.bar h1 .seal{display:inline-grid;place-items:center;width:2.1rem;height:2.1rem;border-radius:.5rem;background:var(--main);color:var(--on-main);font-size:1.05rem;margin-right:.45rem;vertical-align:.15rem}
+.bar h1 small{display:block;font-family:'Noto Sans TC',sans-serif;font-size:.82rem;font-weight:500;letter-spacing:0;color:var(--sub);margin-top:.15rem}
+.ibtn{min-height:2.6rem;padding:0 .8rem;border:1.5px solid var(--line);border-radius:.55rem;background:var(--paper);font-weight:700;font-size:.92rem;display:inline-flex;align-items:center;gap:.3rem;text-decoration:none;color:var(--ink)}
+.ibtn:hover{border-color:var(--main)}
+.warn-line{margin:.45rem 0 0;font-size:.82rem;color:var(--sub)}
+.warn-line button{background:none;border:0;padding:0;color:var(--bad);font-weight:700;text-decoration:underline;font-size:inherit}
+
+.tabs{display:flex;gap:.25rem;margin-top:1.2rem;border-bottom:3px solid var(--main);flex-wrap:wrap}
+.tabs button{border:0;border-radius:.6rem .6rem 0 0;background:var(--line);color:var(--sub);font-weight:700;padding:.45rem .95rem;min-height:2.7rem}
+.tabs button[aria-selected="true"]{background:var(--main);color:var(--on-main)}
+.card{background:var(--paper);border:1.5px solid var(--line);border-radius:.9rem;padding:.9rem 1rem;margin-top:.8rem}
+.card h3{font-family:var(--serif);font-size:1.15rem;color:var(--main);margin-bottom:.3rem}
+.small{font-size:.84rem;color:var(--sub)}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(12rem,100%),1fr));gap:.6rem .8rem}
+.row>*{min-width:0}
+.fld{display:block;font-weight:700;font-size:.88rem}
+.fld small{display:block;font-weight:500;color:var(--sub);font-size:.76rem;line-height:1.4;margin-top:.1rem}
+.fld input,.fld select,.fld textarea{display:block;width:100%;min-height:2.6rem;margin-top:.15rem;border:1.5px solid var(--line);border-radius:.5rem;padding:.2rem .55rem;background:#fff;font-weight:500}
+.fld input[type=number]{font-family:var(--mono);text-align:right}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.3rem;min-height:2.7rem;border:0;border-radius:.6rem;background:var(--accent);color:#fff;font-weight:900;padding:.2rem 1.1rem;text-decoration:none}
+.btn.alt{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.btn.red{background:var(--bad)}
+.btns{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.7rem}
+.result{margin-top:.7rem;background:var(--main);color:var(--on-main);border-radius:.8rem;padding:.8rem 1rem}
+.result b{font-family:var(--mono);font-size:1.6rem}
+
+#modal{position:fixed;inset:0;background:rgba(20,20,20,.55);z-index:80;display:none;align-items:center;justify-content:center;padding:1rem}
+#modal.show{display:flex}
+#modalBox{background:var(--bg);width:100%;max-width:36rem;max-height:calc(100dvh - 2rem);overflow:auto;border-radius:1rem;padding:1rem 1.1rem}
+#modalBox h2{font-family:var(--serif);font-size:1.3rem;color:var(--main);margin-bottom:.4rem}
+#modalBox ul{padding-left:1.2em;margin:.3rem 0}
+#modalBox li{margin:.2rem 0}
+/* ⚙ 常用設定：收合式區塊 */
+.set-sec{background:#fff;border:1.5px solid var(--line);border-radius:.6rem;margin-bottom:.45rem}
+.set-sec>summary{list-style:none;cursor:pointer;display:flex;gap:.5rem;align-items:center;padding:.55rem .75rem;font-weight:700;min-height:2.9rem}
+.set-sec>summary::-webkit-details-marker{display:none}
+.set-sec>summary::after{content:'▸';transition:transform .2s}
+.set-sec[open]>summary::after{transform:rotate(90deg)}
+.set-sec .sst{flex:1 1 0}
+.set-sec .ssv{font-weight:500;font-size:.78rem;color:var(--sub);text-align:right}
+.set-body{padding:0 .75rem .75rem}
+.vstack{display:grid;gap:.45rem;margin-top:.5rem}
+.toast{position:fixed;left:50%;bottom:calc(1.2rem + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:#fff;padding:.55rem 1rem;border-radius:.7rem;z-index:90;font-weight:700;max-width:calc(100vw - 2rem)}
+.foot{text-align:center;font-size:.82rem;color:var(--sub);margin-top:2rem}
+.foot a{margin:0 .3rem}
+.print-head,#pdfWatermark{display:none}
+
+@media (max-width:600px){.bar h1{font-size:1.4rem}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}#marqueeTrack{animation-duration:90s!important}}
+@media print{
+  @page{size:A4;margin:12mm}
+  html{font-size:11px}
+  body{background:#fff;padding:0}
+  #marqueeBar,.noprint,.tabs,.toast,#modal,.foot,.bar,.warn-line,.btns{display:none!important}
+  #app{max-width:none;padding:0}
+  .print-head{display:block;margin-bottom:.5rem}
+  .print-head h1{font-family:var(--serif);font-size:1.6rem;color:var(--main)}
+  .panel{display:block!important}
+  .card,.result{break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #pdfWatermark{display:flex!important;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;pointer-events:none}
+  #pdfWatermark img{width:42%;min-width:200px;max-width:380px;opacity:.11}
+}
+</style>
+</head>
+<body>
+<div id="marqueeBar"><div id="marqueeTrack"></div></div>
+<main id="app"></main>
+<div id="modal" role="dialog" aria-modal="true" aria-label="對話框"><div id="modalBox"></div></div>
+<noscript>這個工具需要開啟 JavaScript 才能使用。</noscript>
+<script src="data.js"></script>
+<script src="watermark.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
