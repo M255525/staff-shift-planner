@@ -3,7 +3,7 @@
 給小店老闆／店長排一週班表：設定班別、人員與每班需要幾個人 → 🪄 自動排班（只填空格）→ 點格子微調 → 即時檢查勞基法一般工時規定（紅點違規、黃點注意）＋本週人力成本與加班費 → 列印橫式 A4／複製給 LINE／CSV／分享只看連結。2026-11-21 建立，**第一個用 `小工具/tool-scaffold` 產生骨架的工具**。
 
 - 純靜態：`index.html`（CSS）＋`data.js`（引擎 `window.SSP`，node 可 require）＋`app.js`（畫面）＋`watermark.js`（`TOOL_WATERMARK`）＋`manual.html`＋PWA。
-- 本機預覽 port **8906**（`.claude/launch.json` 的 `staff-shift-planner`；程式牆 `LOCAL_APPS` static、host localhost）。visitor-badge `m255525.staffshiftplanner`（手冊 `.manual`）。
+- 本機預覽 port **8906**（`.claude/launch.json` 的 `staff-shift-planner`；上線後程式牆在 `REPO_META`）。visitor-badge `m255525.staffshiftplanner`（手冊 `.manual`）。
 - **2026-11-21 已上線** <https://m255525.github.io/staff-shift-planner/>（`publish.mjs`：建 repo＋push → 開 Pages → 補 master 部署規則 → workflow_dispatch）。程式牆 `REPO_META`、github-dashboard、AI 工具導航已登記。改版後升 `service-worker.js` 的 `CACHE_NAME` 再 push。
 
 ## 規則（改了 `data.js` 跑 `node tools/test_engine.mjs`，4589 項含 1500 組亂數）
