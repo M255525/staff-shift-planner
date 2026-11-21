@@ -1,23 +1,30 @@
 # staff-shift-planner — 員工排班表
 
-小店排一週班表：設定班別、人員與每班需要幾個人，自動排班並檢查勞基法工時規定（每日 12 小時、11 小時輪班間隔、例假、連續上班），算出人力成本與加班費，可列印貼牆或傳 LINE。（2026-11-21 由 tool-scaffold 建立骨架）
+給小店老闆／店長排一週班表：設定班別、人員與每班需要幾個人 → 🪄 自動排班（只填空格）→ 點格子微調 → 即時檢查勞基法一般工時規定（紅點違規、黃點注意）＋本週人力成本與加班費 → 列印橫式 A4／複製給 LINE／CSV／分享只看連結。2026-11-21 建立，**第一個用 `小工具/tool-scaffold` 產生骨架的工具**。
 
-- 純靜態：`index.html`（CSS）＋`data.js`（計算引擎 `window.SSP`，node 可 require）＋`app.js`（畫面）＋`watermark.js`（`TOOL_WATERMARK` 馬克老師浮水印，列印用）＋`manual.html`＋PWA。
-- 本機預覽 port **8906**（`.claude/launch.json` 的 `staff-shift-planner`）。visitor-badge `m255525.staffshiftplanner`（手冊 `.manual`）。
-- 尚未上線。上線後在這裡記網址與日期；改版要升 `service-worker.js` 的 `CACHE_NAME` 再 push。
+- 純靜態：`index.html`（CSS）＋`data.js`（引擎 `window.SSP`，node 可 require）＋`app.js`（畫面）＋`watermark.js`（`TOOL_WATERMARK`）＋`manual.html`＋PWA。
+- 本機預覽 port **8906**（`.claude/launch.json` 的 `staff-shift-planner`；程式牆 `LOCAL_APPS` static、host localhost）。visitor-badge `m255525.staffshiftplanner`（手冊 `.manual`）。
+- **尚未上線**（使用者偏好：實驗性新工具上線前先問）。上線後改程式牆 `REPO_META`、github-dashboard、AI 工具導航（建議放「開一家店」情境，在雇主人事成本試算旁）；改版要升 `service-worker.js` 的 `CACHE_NAME`。
 
-## 規則
-- （待補）計算規則、資料來源與查證日期、自訂門檻。改了 `data.js` 跑 `node tools/test_engine.mjs`。
+## 規則（改了 `data.js` 跑 `node tools/test_engine.mjs`，4589 項含 1500 組亂數）
+- 依勞動基準法**一般工時**（2026-11 查證），常數在 `P`：每日 12（第 32 條）、正常 8（第 30 條）、每月加班 46（第 32 條）、換班間隔 11 小時（第 34 條）、連續 4 小時要休 30 分（第 35 條，剛好 4 小時不用）、童工每日 8／每週 40／不得 20:00–06:00（第 47、48 條）、基本工資月薪 29,500／時薪 196（**與 employer-payroll-cost-calculator 一致，改其中一個要兩邊一起改**）。
+- 一週的第 1～5 個上班日是工作日、第 6 個算休息日出勤（黃）、第 7 個是例假出勤（紅）——依**日期先後**決定。每月加班推估＝（平日超過 8 小時＋休息日全部時數）× 52/12。
+- 加班費倍率同人事成本試算：平日 `otWeekday` 4/3、5/3（全額）；休息日 `otRestday` 另再加給 4/3、5/3、8/3（時薪的人另付原本工資）；例假加倍（月薪另加一日 `時薪×8`）。月薪換算時薪 ÷240，週分攤 ÷(52/12)。
+- 班別跨夜：結束 ≤ 開始就 +24h；換班間隔＝(1440 + 明天開始 − 今天結束)/60。
+- **只檢查單週**：跨週連續上班、國定假日、變形工時、指定行業例假調整都沒處理（頁面與手冊有寫）。
+- 自動排班 `autoFill`：只填空格（手動排的保留）；**先排最緊的日子**（能上班人數−需求最小）、同日依上班時間先後且**同時間先排長的班**；候選人排序：未滿 5 天 → **月薪且排進去後 ≤40 小時** → 本週時數少 → 前一天同班別 → 名單順序；`canTake` 擋：不能上的日子、天數上限（自動排不排第 7 天、童工不排第 6 天）、時數上限、12 小時、童工、11 小時間隔（前後兩天都看）、**每月加班推估（用排進去之後的整週依日期重算，因為不是照日期順序填）**。排不滿再跑 `swapOnce` 補洞（A 從別天換下來由 B 頂替）。測試保證：三個範例自動排完 0 紅 0 黃、月薪人員 5 天 ≥35 小時；亂數從空白自動排不會產生任何個人違規、需求守恆。
+- 範例 3 家（咖啡店、24 小時門市、小餐館）：店名帶「（範例）」，人名薪資虛構。第一次打開是咖啡店範例（未排班）＋提示列。
 
 ## 架構
-- localStorage 前綴 `ssp.`：`state`、`tab`、`fold`、`fsize`、`warnSeen`、`marquee`。
-- 輸入只呼叫 `refresh()`，不重繪表單（焦點才不會跑掉）；欄位 change 時**只有數值真的被修正才重繪**，否則會吃掉使用者的下一次點擊。
-- 備份 JSON `app:'staff-shift-planner'`。測試掛鉤 `window._tool`。
-- 畫風：（待設計）範本配色 `slate` 只是起點；姊妹作的畫面要明顯不同。圖示由 `tools/make_icons.py` 產生。
+- localStorage 前綴 `ssp.`：`state`（normalize 後的整份）、`tab`、`fold`、`fsize`、`warnSeen`、`marquee`。
+- 設定分頁的輸入只呼叫 `refresh()`（重繪重點、班表、檢查、成本，不重繪設定表單；班別「實際 x h」用 `data-calc` 局部更新）；change 時**只有值真的被修正才寫回**；加刪人員／班別、切換計薪才 `render()`。
+- 點格子開 `pickModal`，選項用 `canTake` 標「可能違規或超過他的上限」但仍可選。檢查分頁「看這格」→ `gotoCell` 閃框。
+- 分享 `#s=` base64url(normalize 後 JSON，**含姓名**) → 只看模式（`viewOnly` 不存檔）。備份 JSON `app:'staff-shift-planner'`。測試掛鉤 `window._tool`（`S`、`analyze()`、`viewOnly`）。
+- 畫風：**鋼製磁吸排班板**（灰金屬板＋鉚釘、髮絲紋、彩色磁鐵片班別、標籤機壓印膠帶 `.tape` 標題、紅色圓磁鐵 logo）；班別色 `D.COLORS` 6 色；列印 A4 橫式只印班表。`tools/make_icons.py` 畫鋼板＋磁鐵。
 
 ## 標準配備
-跑馬燈（工作區公告 GAS，滑鼠移入暫停，不可關）、⚙ 常用設定（收合式：資料／顯示／關於本工具）、首訪警語＋頁面入口、`manual.html#creator` 完整版（改 `tools/manual_body.html` 後跑 `python tools/build_manual.py`，創作者區塊從賞鳥地圖範本複製）、PWA、訪客計數器、列印浮水印。
+跑馬燈（工作區公告 GAS，滑鼠移入暫停，不可關）、⚙ 常用設定（收合式：班表資料／顯示／關於本工具）、首訪警語＋頁面入口、`manual.html#creator` 完整版（改 `tools/manual_body.html` 後跑 `python tools/build_manual.py`）、PWA、訪客計數器、列印浮水印。
 
 ## 測試
-- `node tools/test_engine.mjs`：（待補手算案例）＋亂數。
-- `python tools/e2e_ssp.py [截圖資料夾]`（Playwright，自己在 port 8916 起伺服器）：標準配備（警語、跑馬燈、收合設定、關於本工具、大字、備份還原、SW、manifest、手冊創作者、列印浮水印、390px）＋主功能。
+- `node tools/test_engine.mjs`：時間與跨夜、童工夜間邊界、週一換算、加班費倍率、手算案例（時薪 200 每天 10 小時 5／6／7 天、月薪）、基本工資、班別本身、換班間隔、童工、個人上限、需求涵蓋、正規化、自動排班（範例、手動保留、不能上的日子、人不夠回報、月薪優先）、1500 組亂數、LINE／CSV。
+- `python tools/e2e_ssp.py [截圖資料夾]`（Playwright，自己在 port 8916 起伺服器，擋掉計數器）：標準配備＋自動排班、點格子改班製造換班間隔紅點→檢查分頁→看這格→改回、設定輸入保留焦點、新增人員、不能上的日子、月薪切換、週一套用全週、成本表、複製 LINE（剪貼簿）、CSV、換週、分享只看不存檔、套用門市範例、重新整理、備份還原、390px。2026-11-21 全過。
